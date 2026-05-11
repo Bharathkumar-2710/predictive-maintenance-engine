@@ -1,9 +1,5 @@
-fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
+flask
 pandas
 numpy
 scikit-learn
 pydantic
-python-multipart
