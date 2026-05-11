@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Sensor Data - Predictive Maintenance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --border-color: #334155;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .logo h1 { font-size: 1.5rem; font-weight: 600; }
+        .logo span { color: var(--accent-blue); }
+        .nav { display: flex; gap: 20px; }
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav a:hover, .nav a.active {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .input-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+        }
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .form-group .hint {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+        .form-group .hint.green { color: var(--accent-green); }
+        .form-group .hint.orange { color: var(--accent-orange); }
+        .form-group .hint.red { color: var(--accent-red); }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn:disabled { background: var(--text-secondary); cursor: not-allowed; }
+        .result-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+        .result-section.show { display: block; }
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .result-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+        .result-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        .prediction-card {
+            background: var(--bg-dark);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        .prediction-card .label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        .prediction-card .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .alert-result {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-weight: 600;
+        }
+        .alert-result.normal { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .alert-result.watch { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+        .alert-result.warning { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+        .alert-result.critical { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        .loading.show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚙️</div>
+                <h1>Predictive <span>Maintenance</span></h1>
+            </div>
+            <div class="nav">
+                <a href="/">Dashboard</a>
+                <a href="/machines.html">Machines</a>
+                <a href="/alerts.html">Alerts</a>
+                <a href="/predictions.html">Predictions</a>
+                <a href="/input.html" class="active">Input</a>
+            </div>
+        </header>
+
+        <div class="page-title">📝 Input Sensor Data</div>
+
+        <div class="input-grid">
+            <div class="input-section">
+                <div class="section-title">🔧 Machine & Cycle</div>
+                <div class="form-group">
+                    <label>Machine ID</label>
+                    <select id="machineId">
+                        <option value="">Select machine...</option>
+                        <option value="MACH-001">MACH-001</option>
+                        <option value="MACH-002">MACH-002</option>
+                        <option value="MACH-003">MACH-003</option>
+                        <option value="MACH-004">MACH-004</option>
+                        <option value="MACH-005">MACH-005</option>
+                        <option value="MACH-006">MACH-006</option>
+                        <option value="MACH-007">MACH-007</option>
+                        <option value="MACH-008">MACH-008</option>
+                        <option value="MACH-009">MACH-009</option>
+                        <option value="MACH-010">MACH-010</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Current Cycle</label>
+                    <input type="number" id="cycle" placeholder="Enter cycle number" min="0" value="100">
+                </div>
+
+                <div class="section-title" style="margin-top: 30px;">🌡️ Sensor Readings</div>
+                <div class="form-group">
+                    <label>Temperature (°F)</label>
+                    <input type="number" id="temperature" placeholder="e.g., 450" step="0.1" value="450">
+                    <div class="hint">Warning: >490°F | Critical: >530°F</div>
+                </div>
+                <div class="form-group">
+                    <label>Vibration (g)</label>
+                    <input type="number" id="vibration" placeholder="e.g., 0.02" step="0.001" value="0.02">
+                    <div class="hint">Warning: >0.45g | Critical: >0.60g</div>
+                </div>
+                <div class="form-group">
+                    <label>Pressure (PSI)</label>
+                    <input type="number" id="pressure" placeholder="e.g., 14.7" step="0.1" value="14.7">
+                    <div class="hint orange">Warning: <10 PSI | Critical: <7.5 PSI</div>
+                </div>
+                <div class="form-group">
+                    <label>RPM</label>
+                    <input type="number" id="rpm" placeholder="e.g., 1800" value="1800">
+                    <div class="hint orange">Warning: <1650 | Critical: <1500</div>
+                </div>
+                <div class="form-group">
+                    <label>Oil Viscosity (cSt)</label>
+                    <input type="number" id="oilViscosity" placeholder="e.g., 45" step="0.1" value="45">
+                    <div class="hint orange">Warning: <36 | Critical: <30</div>
+                </div>
+                <div class="form-group">
+                    <label>Current Draw (A)</label>
+                    <input type="number" id="currentDraw" placeholder="e.g., 12" step="0.1" value="12">
+                    <div class="hint">Warning: >15.5A | Critical: >17A</div>
+                </div>
+
+                <button class="btn" id="predictBtn" onclick="predictRUL()">
+                    🔮 Predict RUL
+                </button>
+            </div>
+
+            <div>
+                <div class="loading" id="loading">
+                    Processing...
+                </div>
+
+                <div class="result-section" id="resultSection">
+                    <div class="result-header">
+                        <div>
+                            <div class="result-value" id="rulValue">-</div>
+                            <div class="result-label">cycles remaining</div>
+                        </div>
+                    </div>
+                    <div class="result-label">Estimated Remaining Useful Life</div>
+
+                    <div class="prediction-card">
+                        <div class="label">Days to Failure</div>
+                        <div class="value" id="daysValue">-</div>
+                    </div>
+                    <div class="prediction-card">
+                        <div class="label">Health Score</div>
+                        <div class="value" id="healthValue">-</div>
+                    </div>
+                    <div class="prediction-card">
+                        <div class="label">Alert Level</div>
+                        <div class="value" id="alertValue">-</div>
+                    </div>
+
+                    <div class="alert-result" id="alertResult">
+                        No alerts
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allMachines = [];
+
+        async function loadMachines() {
+            try {
+                const response = await fetch('/api/machines');
+                allMachines = await response.json();
+            } catch (error) {
+                console.error('Error loading machines:', error);
+            }
+        }
+        loadMachines();
+
+        async function predictRUL() {
+            const btn = document.getElementById('predictBtn');
+            const loading = document.getElementById('loading');
+            const resultSection = document.getElementById('resultSection');
+
+            const data = {
+                machine_id: document.getElementById('machineId').value || 'MACH-001',
+                cycle: parseInt(document.getElementById('cycle').value) || 100,
+                temperature: parseFloat(document.getElementById('temperature').value) || 450,
+                vibration: parseFloat(document.getElementById('vibration').value) || 0.02,
+                pressure: parseFloat(document.getElementById('pressure').value) || 14.7,
+                rpm: parseFloat(document.getElementById('rpm').value) || 1800,
+                oil_viscosity: parseFloat(document.getElementById('oilViscosity').value) || 45,
+                current_draw: parseFloat(document.getElementById('currentDraw').value) || 12,
+            };
+
+            btn.disabled = true;
+            loading.classList.add('show');
+            resultSection.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/ingest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                // Calculate health score based on sensor values
+                const healthScore = calculateHealthScore(data);
+                const rul = calculateRUL(data, healthScore);
+                const alertLevel = getAlertLevel(healthScore);
+
+                document.getElementById('rulValue').textContent = rul;
+                document.getElementById('daysValue').textContent = (rul * 4 / 24).toFixed(1) + ' days';
+                document.getElementById('healthValue').textContent = (healthScore * 100).toFixed(1) + '%';
+                document.getElementById('alertValue').textContent = alertLevel;
+
+                const alertResult = document.getElementById('alertResult');
+                alertResult.className = 'alert-result ' + alertLevel.toLowerCase();
+                alertResult.textContent = alertLevel + ' - ' + getAlertMessage(data);
+
+                resultSection.classList.add('show');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error predicting RUL. Please try again.');
+            } finally {
+                btn.disabled = false;
+                loading.classList.remove('show');
+            }
+        }
+
+        function calculateHealthScore(data) {
+            let health = 1.0;
+
+            // Temperature impact (high = bad)
+            if (data.temperature > 490) health -= 0.3;
+            else if (data.temperature > 450) health -= 0.1;
+
+            // Vibration impact (high = bad)
+            if (data.vibration > 0.45) health -= 0.25;
+            else if (data.vibration > 0.2) health -= 0.1;
+
+            // Pressure impact (low = bad)
+            if (data.pressure < 10) health -= 0.3;
+            else if (data.pressure < 12) health -= 0.1;
+
+            // RPM impact (low = bad)
+            if (data.rpm < 1650) health -= 0.2;
+            if (data.rpm < 1500) health -= 0.2;
+
+            // Oil viscosity impact (low = bad)
+            if (data.oil_viscosity < 36) health -= 0.2;
+            if (data.oil_viscosity < 30) health -= 0.2;
+
+            // Current draw impact (high = bad)
+            if (data.current_draw > 15.5) health -= 0.15;
+            if (data.current_draw > 17) health -= 0.15;
+
+            return Math.max(0, Math.min(1, health));
+        }
+
+        function calculateRUL(data, healthScore) {
+            // Estimate RUL based on health score and sensor degradation
+            let baseRul = healthScore * 200;
+
+            // Adjust based on critical thresholds
+            if (data.temperature > 530 || data.rpm < 1500 || data.oil_viscosity < 30) {
+                baseRul *= 0.2;
+            } else if (data.temperature > 490 || data.rpm < 1650 || data.oil_viscosity < 36) {
+                baseRul *= 0.5;
+            }
+
+            return Math.round(baseRul);
+        }
+
+        function getAlertLevel(healthScore) {
+            if (healthScore >= 0.75) return 'NORMAL';
+            if (healthScore >= 0.50) return 'WATCH';
+            if (healthScore >= 0.25) return 'WARNING';
+            return 'CRITICAL';
+        }
+
+        function getAlertMessage(data) {
+            const alerts = [];
+
+            if (data.temperature > 490) alerts.push('High temperature');
+            if (data.vibration > 0.45) alerts.push('High vibration');
+            if (data.pressure < 10) alerts.push('Low pressure');
+            if (data.rpm < 1650) alerts.push('Low RPM');
+            if (data.oil_viscosity < 36) alerts.push('Low oil viscosity');
+            if (data.current_draw > 15.5) alerts.push('High current');
+
+            return alerts.length > 0 ? alerts.join(', ') : 'All sensors normal';
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,6 @@
 """
 Remaining Useful Life (RUL) Regression Model.
-Uses Gradient Boosting Regressor on engineered features derived from sensor history.
-Training data: NASA Turbofan-style simulated dataset.
+Uses Gradient Boosting Regressor with engineered features for prediction.
 """
 
 import numpy as np
@@ -12,21 +11,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.pipeline import Pipeline
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from data.data_generator import generate_dataset
 
-# ──────────────────────────────────────────────
-# Feature Engineering
-# ──────────────────────────────────────────────
+from src.services.data_generator import generate_dataset, get_latest_snapshot, SENSORS
 
-SENSOR_COLS = ["temperature", "vibration", "pressure", "rpm", "oil_viscosity", "current_draw"]
+# Feature engineering constants
+SENSOR_COLS = SENSORS
+
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Build a rich feature matrix from raw sensor readings.
-    For each machine, compute rolling statistics and lag features.
-    """
+    """Build feature matrix with rolling statistics and lag features."""
     df = df.sort_values(["machine_id", "cycle"]).copy()
     feature_frames = []
 
@@ -36,14 +29,14 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         # Rolling window stats (window = 5 cycles)
         for col in SENSOR_COLS:
             g[f"{col}_roll_mean"] = g[col].rolling(5, min_periods=1).mean()
-            g[f"{col}_roll_std"]  = g[col].rolling(5, min_periods=1).std().fillna(0)
-            g[f"{col}_lag1"]      = g[col].shift(1).fillna(g[col])
-            g[f"{col}_delta"]     = g[col] - g[f"{col}_lag1"]
+            g[f"{col}_roll_std"] = g[col].rolling(5, min_periods=1).std().fillna(0)
+            g[f"{col}_lag1"] = g[col].shift(1).fillna(g[col])
+            g[f"{col}_delta"] = g[col] - g[f"{col}_lag1"]
 
         # Derived composite features
-        g["vibration_x_temp"]  = g["vibration"] * g["temperature"]
+        g["vibration_x_temp"] = g["vibration"] * g["temperature"]
         g["rpm_pressure_ratio"] = g["rpm"] / (g["pressure"].clip(lower=0.1))
-        g["cycle_normalized"]  = g["cycle"] / g["max_cycle"]
+        g["cycle_normalized"] = g["cycle"] / g["max_cycle"]
 
         feature_frames.append(g)
 
@@ -54,7 +47,6 @@ def build_feature_matrix(df: pd.DataFrame):
     """Return (X, y) arrays ready for sklearn."""
     df_feat = engineer_features(df)
 
-    # Drop non-numeric / target-leaking columns
     drop_cols = ["machine_id", "timestamp", "alert_level", "rul",
                  "health_score", "max_cycle", "degradation_rate"]
     feature_cols = [c for c in df_feat.columns if c not in drop_cols]
@@ -64,14 +56,9 @@ def build_feature_matrix(df: pd.DataFrame):
     return X, y, feature_cols
 
 
-# ──────────────────────────────────────────────
-# Model Training
-# ──────────────────────────────────────────────
-
 class RULPredictor:
     """
     Gradient Boosting pipeline for Remaining Useful Life regression.
-    Provides fit(), predict(), evaluate(), and predict_from_snapshot() methods.
     """
 
     def __init__(self, model_type: str = "gbr"):
@@ -88,7 +75,7 @@ class RULPredictor:
 
         self.pipeline = Pipeline([
             ("scaler", StandardScaler()),
-            ("model",  estimator),
+            ("model", estimator),
         ])
         self.feature_cols_: list[str] = []
         self.trained_: bool = False
@@ -101,13 +88,13 @@ class RULPredictor:
         )
         self.pipeline.fit(X_train, y_train)
         self.trained_ = True
-        # Evaluate
+
         y_pred = self.pipeline.predict(X_test)
         self.metrics_ = {
-            "mae":    round(float(mean_absolute_error(y_test, y_pred)), 2),
-            "r2":     round(float(r2_score(y_test, y_pred)), 2),
+            "mae": round(float(mean_absolute_error(y_test, y_pred)), 2),
+            "r2": round(float(r2_score(y_test, y_pred)), 2),
             "n_train": len(X_train),
-            "n_test":  len(X_test),
+            "n_test": len(X_test),
         }
         return self
 
@@ -117,14 +104,10 @@ class RULPredictor:
         return np.clip(self.pipeline.predict(X), 0, None)
 
     def predict_from_row(self, row: pd.Series, df_history: pd.DataFrame) -> int:
-        """
-        Predict RUL for a single machine given its latest reading,
-        using historical data for rolling/lag features.
-        """
+        """Predict RUL for a single machine."""
         machine_id = row["machine_id"]
         history = df_history[df_history["machine_id"] == machine_id].copy()
 
-        # Append the new row (or use existing if already present)
         if row["cycle"] not in history["cycle"].values:
             history = pd.concat([history, row.to_frame().T], ignore_index=True)
 
@@ -135,26 +118,21 @@ class RULPredictor:
         pred = self.predict(feature_vals)[0]
         return int(round(pred))
 
-    def predict_batch_snapshot(self, snapshot_df: pd.DataFrame,
-                               full_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        For each machine in snapshot, predict RUL and compute predicted failure date.
-        Returns enriched DataFrame.
-        """
+    def predict_batch_snapshot(self, snapshot_df: pd.DataFrame, full_df: pd.DataFrame) -> pd.DataFrame:
+        """Predict RUL for all machines in snapshot."""
         results = []
         for _, row in snapshot_df.iterrows():
             predicted_rul = self.predict_from_row(row, full_df)
-            # Assume 1 cycle ≈ 4 hours of operation
             hours_to_failure = predicted_rul * 4
             results.append({
-                "machine_id":        row["machine_id"],
-                "current_cycle":     int(row["cycle"]),
-                "actual_rul":        int(row["rul"]),
-                "predicted_rul":     predicted_rul,
-                "health_score":      round(float(row["health_score"]), 4),
-                "alert_level":       row["alert_level"],
-                "hours_to_failure":  hours_to_failure,
-                "days_to_failure":   round(hours_to_failure / 24, 1),
+                "machine_id": row["machine_id"],
+                "current_cycle": int(row["cycle"]),
+                "actual_rul": int(row["rul"]),
+                "predicted_rul": predicted_rul,
+                "health_score": round(float(row["health_score"]), 4),
+                "alert_level": row["alert_level"],
+                "hours_to_failure": hours_to_failure,
+                "days_to_failure": round(hours_to_failure / 24, 1),
             })
 
         return pd.DataFrame(results).sort_values("predicted_rul")
@@ -176,18 +154,16 @@ class RULPredictor:
         )
 
 
-# ──────────────────────────────────────────────
-# Singleton model instance (loaded once at startup)
-# ──────────────────────────────────────────────
+# Singleton model instance
 _model_instance: RULPredictor | None = None
-_training_df:    pd.DataFrame | None = None
+_training_df: pd.DataFrame | None = None
 
 
 def get_trained_model() -> tuple[RULPredictor, pd.DataFrame]:
     global _model_instance, _training_df
     if _model_instance is None:
         print("Training RUL model on simulated dataset...")
-        _training_df    = generate_dataset(readings_per_machine=50)
+        _training_df = generate_dataset(readings_per_machine=50)
         _model_instance = RULPredictor(model_type="gbr").fit(_training_df)
         m = _model_instance.metrics_
         print(f"  MAE = {m['mae']} cycles | R² = {m['r2']} | "
@@ -202,5 +178,3 @@ if __name__ == "__main__":
     preds = model.predict_batch_snapshot(snap, df)
     print("\nRUL Predictions:")
     print(preds.to_string(index=False))
-    print("\nTop Feature Importances:")
-    print(model.feature_importances().to_string(index=False))

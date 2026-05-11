@@ -6,7 +6,7 @@ Endpoints: sensor ingestion, machine status, RUL predictions, alerts, dashboard 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response, send_from_directory
 from datetime import datetime
 
 from backend.sensors  import SensorSuite, AlertSeverity
@@ -18,6 +18,35 @@ import pandas as pd
 import numpy as np
 
 app = Flask(__name__)
+
+# Serve static files
+import os
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+
+@app.route("/static/<path:filename>")
+def serve_static(filename):
+    return send_from_directory(STATIC_DIR, filename)
+
+# Serve HTML pages
+@app.route("/dashboard.html")
+def page_dashboard():
+    return send_from_directory(STATIC_DIR, "dashboard.html")
+
+@app.route("/machines.html")
+def page_machines():
+    return send_from_directory(STATIC_DIR, "machines.html")
+
+@app.route("/alerts.html")
+def page_alerts():
+    return send_from_directory(STATIC_DIR, "alerts.html")
+
+@app.route("/predictions.html")
+def page_predictions():
+    return send_from_directory(STATIC_DIR, "predictions.html")
+
+@app.route("/input.html")
+def page_input():
+    return send_from_directory(STATIC_DIR, "input.html")
 
 # ──────────────────────────────────────────────
 # Startup — seed DB and train model
@@ -71,6 +100,33 @@ def _jsonify_df(df: pd.DataFrame):
 # ──────────────────────────────────────────────
 # Routes
 # ──────────────────────────────────────────────
+
+@app.route("/")
+def api_root():
+    """Serve the dashboard UI."""
+    import os
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "index.html")
+    try:
+        with open(html_path, "r", encoding="utf-8") as f:
+            response = make_response(f.read())
+            response.headers['Content-Type'] = 'text/html; charset=utf-8'
+            return response
+    except FileNotFoundError:
+        return jsonify({
+            "name": "Predictive Maintenance API",
+            "status": "running",
+            "endpoints": [
+                "/api/health",
+                "/api/dashboard",
+                "/api/machines",
+                "/api/machines/<machine_id>",
+                "/api/predictions",
+                "/api/alerts",
+                "/api/feature-importance",
+                "/api/model-metrics",
+            ]
+        })
+
 
 @app.route("/api/health")
 def api_health():

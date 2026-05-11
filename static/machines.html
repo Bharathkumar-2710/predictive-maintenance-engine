@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machines - Predictive Maintenance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --border-color: #334155;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .logo h1 { font-size: 1.5rem; font-weight: 600; }
+        .logo span { color: var(--accent-blue); }
+        .nav { display: flex; gap: 20px; }
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav a:hover, .nav a.active {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .filter-select {
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            min-width: 150px;
+        }
+        .machines-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .machine-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .machine-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        .machine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .machine-name { font-size: 1.25rem; font-weight: 600; }
+        .alert-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .alert-badge.normal { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .alert-badge.watch { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+        .alert-badge.warning { background: rgba(249, 115, 22, 0.2); color: var(--accent-orange); }
+        .alert-badge.critical { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .health-bar-container { margin-bottom: 16px; }
+        .health-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .health-bar {
+            height: 10px;
+            background: var(--bg-dark);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .health-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        .health-bar-fill.green { background: var(--accent-green); }
+        .health-bar-fill.yellow { background: var(--accent-yellow); }
+        .health-bar-fill.orange { background: var(--accent-orange); }
+        .health-bar-fill.red { background: var(--accent-red); }
+        .machine-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .detail-item {
+            background: var(--bg-dark);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .detail-item label {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .detail-item .value {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚙️</div>
+                <h1>Predictive <span>Maintenance</span></h1>
+            </div>
+            <div class="nav">
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="/machines.html" class="active">Machines</a>
+                <a href="/alerts.html">Alerts</a>
+                <a href="/predictions.html">Predictions</a>
+                <a href="/input.html">Input</a>
+            </div>
+        </header>
+
+        <div class="page-title">🏭 All Machines</div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search machine ID..." onkeyup="filterMachines()">
+            <select id="filterSelect" class="filter-select" onchange="filterMachines()">
+                <option value="all">All Status</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="WARNING">WARNING</option>
+                <option value="WATCH">WATCH</option>
+                <option value="NORMAL">NORMAL</option>
+            </select>
+        </div>
+
+        <div class="machines-grid" id="machinesGrid">
+            <div class="loading">Loading machines...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function loadMachines() {
+            try {
+                const response = await fetch(`${API_BASE}/dashboard`);
+                const data = await response.json();
+                renderMachines(data.fleet);
+            } catch (error) {
+                document.getElementById('machinesGrid').innerHTML = '<div class="loading">Error loading data</div>';
+            }
+        }
+
+        function renderMachines(machines) {
+            const grid = document.getElementById('machinesGrid');
+            grid.innerHTML = machines.map(m => {
+                const healthPercent = Math.round(m.health_score * 100);
+                const healthColor = getHealthColor(m.health_score);
+                const alertClass = m.alert_level.toLowerCase();
+                return `
+                    <div class="machine-card" data-id="${m.machine_id}" data-alert="${m.alert_level}">
+                        <div class="machine-header">
+                            <div class="machine-name">${m.machine_id}</div>
+                            <span class="alert-badge ${alertClass}">${m.alert_level}</span>
+                        </div>
+                        <div class="health-bar-container">
+                            <div class="health-bar-label">
+                                <span>Health Score</span>
+                                <span>${healthPercent}%</span>
+                            </div>
+                            <div class="health-bar">
+                                <div class="health-bar-fill ${healthColor}" style="width: ${healthPercent}%"></div>
+                            </div>
+                        </div>
+                        <div class="machine-details">
+                            <div class="detail-item">
+                                <label>Cycle</label>
+                                <div class="value">${m.current_cycle}</div>
+                            </div>
+                            <div class="detail-item">
+                                <label>RUL</label>
+                                <div class="value">${m.predicted_rul}</div>
+                            </div>
+                            <div class="detail-item">
+                                <label>Days Left</label>
+                                <div class="value">${m.days_to_failure}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getHealthColor(health) {
+            if (health >= 0.75) return 'green';
+            if (health >= 0.5) return 'yellow';
+            if (health >= 0.25) return 'orange';
+            return 'red';
+        }
+
+        function filterMachines() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('filterSelect').value;
+            const cards = document.querySelectorAll('.machine-card');
+
+            cards.forEach(card => {
+                const id = card.dataset.id.toLowerCase();
+                const alert = card.dataset.alert;
+                const matchSearch = id.includes(search);
+                const matchFilter = filter === 'all' || alert === filter;
+                card.style.display = matchSearch && matchFilter ? 'block' : 'none';
+            });
+        }
+
+        loadMachines();
+    </script>
+</body>
+</html>

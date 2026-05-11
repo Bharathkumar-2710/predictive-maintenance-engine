@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts - Predictive Maintenance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --border-color: #334155;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), #8b5cf6);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .logo h1 { font-size: 1.5rem; font-weight: 600; }
+        .logo span { color: var(--accent-blue); }
+        .nav { display: flex; gap: 20px; }
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .nav a:hover, .nav a.active {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .summary-card .count {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .summary-card.critical .count { color: var(--accent-red); }
+        .summary-card.warning .count { color: var(--accent-orange); }
+        .summary-card.watch .count { color: var(--accent-yellow); }
+        .summary-card.normal .count { color: var(--accent-green); }
+        .summary-card label { color: var(--text-secondary); }
+        .alerts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+        }
+        .alert-item.critical { border-left: 4px solid var(--accent-red); }
+        .alert-item.warning { border-left: 4px solid var(--accent-orange); }
+        .alert-item.watch { border-left: 4px solid var(--accent-yellow); }
+        .alert-item.normal { border-left: 4px solid var(--accent-green); }
+        .alert-icon {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        .alert-item.critical .alert-icon { background: rgba(239, 68, 68, 0.2); }
+        .alert-item.warning .alert-icon { background: rgba(249, 115, 22, 0.2); }
+        .alert-item.watch .alert-icon { background: rgba(234, 179, 8, 0.2); }
+        .alert-info { flex: 1; }
+        .alert-info .machine { font-weight: 600; font-size: 1.125rem; }
+        .alert-info .message { color: var(--text-secondary); font-size: 0.875rem; margin-top: 4px; }
+        .alert-meta { text-align: right; }
+        .alert-meta .sensor { color: var(--accent-blue); font-size: 0.875rem; }
+        .alert-meta .value { font-weight: 600; }
+        .no-alerts {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚙️</div>
+                <h1>Predictive <span>Maintenance</span></h1>
+            </div>
+            <div class="nav">
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="/machines.html">Machines</a>
+                <a href="/alerts.html" class="active">Alerts</a>
+                <a href="/predictions.html">Predictions</a>
+                <a href="/input.html">Input</a>
+            </div>
+        </header>
+
+        <div class="page-title">🚨 Alerts</div>
+
+        <div class="summary-cards" id="summaryCards">
+            <div class="summary-card critical">
+                <div class="count" id="criticalCount">0</div>
+                <label>CRITICAL</label>
+            </div>
+            <div class="summary-card warning">
+                <div class="count" id="warningCount">0</div>
+                <label>WARNING</label>
+            </div>
+            <div class="summary-card watch">
+                <div class="count" id="watchCount">0</div>
+                <label>WATCH</label>
+            </div>
+            <div class="summary-card normal">
+                <div class="count" id="normalCount">0</div>
+                <label>NORMAL</label>
+            </div>
+        </div>
+
+        <div class="alerts-list" id="alertsList">
+            <div class="no-alerts">Loading alerts...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function loadAlerts() {
+            try {
+                const [dashRes, alertsRes] = await Promise.all([
+                    fetch(`${API_BASE}/dashboard`),
+                    fetch(`${API_BASE}/alerts?limit=50`)
+                ]);
+                const dashboard = await dashRes.json();
+                const alerts = await alertsRes.json();
+
+                renderAlerts(dashboard, alerts);
+            } catch (error) {
+                document.getElementById('alertsList').innerHTML = '<div class="no-alerts">Error loading alerts</div>';
+            }
+        }
+
+        function renderAlerts(dashboard, alerts) {
+            const counts = dashboard.alert_dist || {};
+            document.getElementById('criticalCount').textContent = counts.CRITICAL || 0;
+            document.getElementById('warningCount').textContent = counts.WARNING || 0;
+            document.getElementById('watchCount').textContent = counts.WATCH || 0;
+            document.getElementById('normalCount').textContent = counts.NORMAL || 0;
+
+            const list = document.getElementById('alertsList');
+
+            if (alerts.length === 0) {
+                list.innerHTML = '<div class="no-alerts">No alerts recorded yet. Alerts will appear here when sensors exceed thresholds.</div>';
+                return;
+            }
+
+            list.innerHTML = alerts.slice(0, 20).map(alert => {
+                const severity = alert.severity.toLowerCase();
+                return `
+                    <div class="alert-item ${severity}">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-info">
+                            <div class="machine">${alert.machine_id}</div>
+                            <div class="message">${alert.message}</div>
+                        </div>
+                        <div class="alert-meta">
+                            <div class="sensor">${alert.sensor_name}</div>
+                            <div class="value">${alert.value} vs ${alert.threshold}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        loadAlerts();
+    </script>
+</body>
+</html>
